@@ -13,16 +13,19 @@ namespace BadApi.Controllers
     public class HomeController : Controller
     {
         private const string _apiBaseUrl = "https://badapi.iqvia.io/api/v1/Tweets";
-        private const string _defaultStartDate = "2016-01-01T00:00:00";
-        private const string _defaultEndDate = "2016-12-12T23:59:59";
+        private const string _defaultStartDate = "1/1/2016 12:00:00 AM";
+        private const string _defaultEndDate = "12/31/2017 11:59:59 PM";
+        private const int _defaultCount = 100;
 
         public async Task<ActionResult> Index()
         {
+            var me = DateTime.Parse("2016-01-01T00:00:00");
+
             var tweets = await GetTweets();
 
             var viewModel = new ViewModel
             {
-                Tweets = null,
+                Tweets = tweets,
             };
 
             return View("~/Views/Home/Index.cshtml", viewModel);
@@ -35,23 +38,72 @@ namespace BadApi.Controllers
                 apiContext = new TweetApi
                 {
                     StartDate = _defaultStartDate,
-                    EndDate = _defaultEndDate
+                    EndDate = _defaultEndDate,
+                    Count = _defaultCount
                 };
             }
 
             var result = new List<Tweet>();
-
+            List<Tweet> prevSet = null;
+            
             using (var client = new HttpClient())
             {
-                var uri = new Uri($"{_apiBaseUrl}?startDate={apiContext.StartDate}&endDate={apiContext.EndDate}");
+                while (!apiContext.IsCompletedSearch)
+                {
+                    var startDate = DateTime.Parse(apiContext.StartDate).ToString();
+                    var apiUrl = new Uri($"{_apiBaseUrl}?startDate={startDate}&endDate={apiContext.EndDate}");
 
-                var response = await client.GetAsync(uri);
-                var textResult = await response.Content.ReadAsStringAsync();
-                result = JsonConvert.DeserializeObject<List<Tweet>>(textResult);
-                var me = textResult;
+
+                    // apiUrl = new Uri("https://badapi.iqvia.io/api/v1/Tweets?startDate=2016-01-07T10%3A06%3A52.5260237%2B00%3A00&endDate=2017-12-31T23%3A59%3A59");
+
+                    var response = await client.GetAsync(apiUrl);
+                    var responseStr = await response.Content.ReadAsStringAsync();
+
+                    var currentSet = JsonConvert.DeserializeObject<List<Tweet>>(responseStr);
+                    if (currentSet.Count == 0)
+                    {
+                        apiContext.IsCompletedSearch = true;
+                        continue;
+                    }
+
+                    prevSet = prevSet == null ? result : prevSet;
+
+                    var firstTweetId = currentSet[0].Id;
+                    var lastTweetStamp = currentSet[currentSet.Count - 1].Stamp;
+
+                    if (prevSet.Any(x => x.Id == firstTweetId) == true)
+                    {
+                        var tweetDict = currentSet.ToDictionary(x => x.Id, x => 1);
+
+                        for (var i = 0; i < currentSet.Count; i++)
+                        {
+                            if (!tweetDict.ContainsKey(currentSet[i].Id))
+                            {
+                                result.AddRange(currentSet.GetRange(i, currentSet.Count - i));
+                            }
+                        }
+                    }
+
+                    prevSet = currentSet;
+                    apiContext.StartDate = lastTweetStamp;
+
+                    // We have to deal with duplicates right away. The 2nd call to the Api could already have duplicates that we got in the first 100 tweets. We have to check the id of the first tweet from every round and see if it exists in our results. 
+                    // If it does => then we have to remove duplicates from the new results set by only adding from the non-duplicate id and onwards. 
+                    // If it does not => then we simply add all the new results into our results
+
+                    
+                }
             }
-
+            
+            
             return result; 
+        }
+
+        public bool IsLaterThan()
+        {
+            var dateTime = DateTime.Parse(_defaultStartDate);
+            // 635872032000000000
+            return true;
         }
 
         [Route("api/v1/tweets/")]

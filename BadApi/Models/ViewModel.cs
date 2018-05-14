@@ -8,5 +8,6 @@ namespace BadApi.Models
     public class ViewModel
     {
         public IEnumerable<Tweet> Tweets { get; set; }
+        //public 
     }
 }
