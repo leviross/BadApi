@@ -4,6 +4,7 @@ using System.Linq;
 using System.Web;
 using BadApi.Models;
 using System.Web.Mvc;
+using System.Web;
 using System.Threading.Tasks;
 using System.Net.Http;
 using Newtonsoft.Json;
@@ -13,8 +14,9 @@ namespace BadApi.Controllers
     public class HomeController : Controller
     {
         private const string _apiBaseUrl = "https://badapi.iqvia.io/api/v1/Tweets";
-        private const string _defaultStartDate = "1/1/2016 12:00:00 AM";
-        private const string _defaultEndDate = "12/31/2017 11:59:59 PM";
+        private const string _defaultStartDate = "2016-01-01T00:00:00Z";
+        private const string _defaultEndDate = "2017-12-31T23:59:59Z";
+        // 2018-05-14T18:34:28Z
         private const int _defaultCount = 100;
 
         public async Task<ActionResult> Index()
@@ -23,12 +25,30 @@ namespace BadApi.Controllers
 
             var tweets = await GetTweets();
 
+            var firstCount = tweets.Count;
+            var newCount = Check(tweets);
+
             var viewModel = new ViewModel
             {
                 Tweets = tweets,
             };
 
             return View("~/Views/Home/Index.cshtml", viewModel);
+        }
+
+        public int Check(List<Tweet> tweets)
+        {
+            var dict = new Dictionary<string, int>();
+
+            foreach (var tweet in tweets)
+            {
+                if (!dict.ContainsKey(tweet.Id))
+                {
+                    dict.Add(tweet.Id, 1);
+                }
+            }
+
+            return dict.Count;
         }
 
         public async Task<List<Tweet>> GetTweets(TweetApi apiContext = null)
@@ -44,14 +64,16 @@ namespace BadApi.Controllers
             }
 
             var result = new List<Tweet>();
-            List<Tweet> prevSet = null;
-            
+            var prevSet = new List<Tweet>();
+
             using (var client = new HttpClient())
             {
                 while (!apiContext.IsCompletedSearch)
                 {
-                    var startDate = DateTime.Parse(apiContext.StartDate).ToString();
-                    var apiUrl = new Uri($"{_apiBaseUrl}?startDate={startDate}&endDate={apiContext.EndDate}");
+                    var startDate = Url.Encode(apiContext.StartDate);
+                    var endDate = Url.Encode(apiContext.EndDate);
+                    // 2016-01-07T10%3A06%3A52.5260237%2B00%3A00
+                    var apiUrl = new Uri($"{_apiBaseUrl}?startDate={startDate}&endDate={endDate}");
 
 
                     // apiUrl = new Uri("https://badapi.iqvia.io/api/v1/Tweets?startDate=2016-01-07T10%3A06%3A52.5260237%2B00%3A00&endDate=2017-12-31T23%3A59%3A59");
@@ -60,31 +82,49 @@ namespace BadApi.Controllers
                     var responseStr = await response.Content.ReadAsStringAsync();
 
                     var currentSet = JsonConvert.DeserializeObject<List<Tweet>>(responseStr);
-                    if (currentSet.Count == 0)
-                    {
-                        apiContext.IsCompletedSearch = true;
-                        continue;
-                    }
 
-                    prevSet = prevSet == null ? result : prevSet;
+                    //if (currentSet.Any(x => x.Id == "976927357935194121"))
+                    //{
+                    //    var stop = true;
+                    //    result = result.Distinct().ToList();
+                    //}
 
-                    var firstTweetId = currentSet[0].Id;
-                    var lastTweetStamp = currentSet[currentSet.Count - 1].Stamp;
+                    var firstTweetId = currentSet.FirstOrDefault()?.Id;
 
                     if (prevSet.Any(x => x.Id == firstTweetId) == true)
                     {
-                        var tweetDict = currentSet.ToDictionary(x => x.Id, x => 1);
+                        var prevDict = prevSet.ToDictionary(x => x.Id, x => 1);
 
                         for (var i = 0; i < currentSet.Count; i++)
                         {
-                            if (!tweetDict.ContainsKey(currentSet[i].Id))
+                            if (!prevDict.ContainsKey(currentSet[i].Id))
                             {
-                                result.AddRange(currentSet.GetRange(i, currentSet.Count - i));
+                                currentSet = currentSet.GetRange(i, currentSet.Count - i);
+                                result.AddRange(currentSet);
+                                i = currentSet.Count;
+                            }
+                            else if (i == currentSet.Count - 1 && currentSet.Count == prevSet.Count)
+                            {
+                                apiContext.IsCompletedSearch = true;
                             }
                         }
                     }
+                    else
+                    {
+                        result.AddRange(currentSet);
+                    }
+
+
+
+                    // result.AddRange(currentSet);
+
+                    if (result.Count == 14000)
+                    {
+                        apiContext.IsCompletedSearch = true;
+                    }
 
                     prevSet = currentSet;
+                    var lastTweetStamp = currentSet[currentSet.Count - 1].Stamp;
                     apiContext.StartDate = lastTweetStamp;
 
                     // We have to deal with duplicates right away. The 2nd call to the Api could already have duplicates that we got in the first 100 tweets. We have to check the id of the first tweet from every round and see if it exists in our results. 
