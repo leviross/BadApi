@@ -1,14 +1,59 @@
-﻿@{
-    ViewBag.Title = "Home Page";
+﻿@model BadApi.Models.ViewModel
+
+@{
+    ViewBag.Title = "Get your Tweets";
+    
 }
 
 <div class="jumbotron">
-    <h1>ASP.NET</h1>
-    <p class="lead">ASP.NET is a free web framework for building great Web sites and Web applications using HTML, CSS and JavaScript.</p>
-    <p><a href="https://asp.net" class="btn btn-primary btn-lg">Learn more &raquo;</a></p>
+    <h1>BadApi Application!</h1>
+    <p class="lead">You can get all the tweets from 2016-2017 or you can search for a certain tweet based on its content.</p>    
 </div>
 
 <div class="row">
+    <div class="col-md-2">
+        <h4>Search Options</h4>
+        <label for="all">Search All 2016-2017</label>
+        <button id="all">Search All</button>
+
+        <label for="tweetId">Search By Id</label>
+        <input type="text" id="tweetId" placeholder="Enter Id" />
+
+        <label for="startDate">Enter Start Date</label>
+        <input type="text" id="startDate" placeholder="Start Date" />
+
+        <label for="endDate">Enter End Date</label>
+        <input type="text" id="endDate" placeholder="End Date" />
+    </div>
+    <div class="col-md-10">        
+        @if (Model.Tweets != null)
+        {
+            <h3>Here are the Tweets you requested.</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Time Stamp</th>
+                        <th>Tweet</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var tweet in Model.Tweets)
+                    {
+                        <tr>
+                            <td>@tweet.Id</td>
+                            <td>@tweet.Stamp</td>
+                            <td>@tweet.Text</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        
+    </div>
+</div>
+
+@*<div class="row">
     <div class="col-md-4">
         <h2>Getting started</h2>
         <p>
@@ -28,4 +73,4 @@
         <p>You can easily find a web hosting company that offers the right mix of features and price for your applications.</p>
         <p><a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkId=301867">Learn more &raquo;</a></p>
     </div>
-</div>
+</div>*@
