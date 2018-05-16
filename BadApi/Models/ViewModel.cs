@@ -8,6 +8,12 @@ namespace BadApi.Models
     public class ViewModel
     {
         public IEnumerable<Tweet> Tweets { get; set; }
-        //public 
+        public ViewCategory Category { get; set; }
+    }
+
+    public enum ViewCategory
+    {
+        Index,
+        Search
     }
 }

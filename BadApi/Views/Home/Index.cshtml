@@ -6,26 +6,27 @@
 }
 
 <div class="jumbotron">
-    <h1>BadApi Application!</h1>
+    <h2>BadApi Application!</h2>
     <p class="lead">You can get all the tweets from 2016-2017 or you can search for a certain tweet based on its content.</p>    
 </div>
 
 <div class="row">
-    <div class="col-md-2">
+    <div class="col-md-3">
+
+        @using (Html.BeginForm("GetTweets", "Home", FormMethod.Post))
+        {
+
+        }
+
+
         <h4>Search Options</h4>
-        <label for="all">Search All 2016-2017</label>
-        <button id="all">Search All</button>
-
-        <label for="tweetId">Search By Id</label>
-        <input type="text" id="tweetId" placeholder="Enter Id" />
-
-        <label for="startDate">Enter Start Date</label>
-        <input type="text" id="startDate" placeholder="Start Date" />
-
-        <label for="endDate">Enter End Date</label>
-        <input type="text" id="endDate" placeholder="End Date" />
+        <label for="alltweets">Search All 2016-2017</label>
+        <a id="alltweets" href="/tweets" class="btn btn-info">Search All</a>
+        <br />
+        <label for="tweetById">Search By Id</label>
+        <a id="tweetById" href="/tweets/" class="btn btn-info">Search All</a>
     </div>
-    <div class="col-md-10">        
+    <div class="col-md-9">        
         @if (Model.Tweets != null && Model.Tweets.Count() != totalUniqueTweets)
         {
             <h3>Here are the Tweets you requested.</h3>
@@ -49,10 +50,10 @@
                 </tbody>
             </table>
         }
-        else if (Model.Tweets.Count() == totalUniqueTweets)
+        else if (Model.Tweets?.Count() == totalUniqueTweets)
         {
             <p>We counted a total of <span>@Model.Tweets.Count()</span> Tweets from 2016-2017.</p>
-        }
+            }
 
     </div>
 </div>

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Web;
 using BadApi.Models;
 using System.Web.Mvc;
-using System.Web;
 using System.Threading.Tasks;
 using System.Net.Http;
 using Newtonsoft.Json;
@@ -16,21 +15,26 @@ namespace BadApi.Controllers
         private const string _apiBaseUrl = "https://badapi.iqvia.io/api/v1/Tweets";
         private const string _defaultStartDate = "2016-01-01T00:00:00Z";
         private const string _defaultEndDate = "2017-12-31T23:59:59Z";
-        // 2018-05-14T18:34:28Z
-        private const int _defaultCount = 100;
+        private List<Tweet> _tweets;
 
-        public async Task<ActionResult> Index()
+        public ActionResult Index()
         {
-            var me = DateTime.Parse("2016-01-01T00:00:00");
+            var viewModel = new ViewModel { Category = ViewCategory.Index };
 
-            var tweets = await GetTweets();
+            return View("~/Views/Home/Index.cshtml", viewModel);
+        }
 
-            var firstCount = tweets.Count;
-            var newCount = Check(tweets);
+        [Route("all-tweets/{id}")]
+        public async Task<ActionResult> Tweets(string id = null)
+        {
+            _tweets = _tweets == null ? await GetTweets() : _tweets;            
+
+            var firstCount = _tweets.Count;
+            var newCount = Check(_tweets);
 
             var viewModel = new ViewModel
             {
-                Tweets = tweets,
+                Tweets = _tweets
             };
 
             return View("~/Views/Home/Index.cshtml", viewModel);
@@ -59,7 +63,6 @@ namespace BadApi.Controllers
                 {
                     StartDate = _defaultStartDate,
                     EndDate = _defaultEndDate,
-                    Count = _defaultCount
                 };
             }
 
@@ -91,34 +94,33 @@ namespace BadApi.Controllers
 
                     var firstTweetId = currentSet.FirstOrDefault()?.Id;
 
-                    if (prevSet.Any(x => x.Id == firstTweetId) == true)
-                    {
-                        var prevDict = prevSet.ToDictionary(x => x.Id, x => 1);
+                    //if (prevSet.Any(x => x.Id == firstTweetId) == true)
+                    //{
+                    //    var prevDict = prevSet.ToDictionary(x => x.Id, x => 1);
 
-                        for (var i = 0; i < currentSet.Count; i++)
-                        {
-                            if (!prevDict.ContainsKey(currentSet[i].Id))
-                            {
-                                currentSet = currentSet.GetRange(i, currentSet.Count - i);
-                                result.AddRange(currentSet);
-                                i = currentSet.Count;
-                            }
-                            else if (i == currentSet.Count - 1 && currentSet.Count == prevSet.Count)
-                            {
-                                apiContext.IsCompletedSearch = true;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        result.AddRange(currentSet);
-                    }
+                    //    for (var i = 0; i < currentSet.Count; i++)
+                    //    {
+                    //        if (!prevDict.ContainsKey(currentSet[i].Id))
+                    //        {
+                    //            currentSet = currentSet.GetRange(i, currentSet.Count - i);
+                    //            result.AddRange(currentSet);
+                    //            i = currentSet.Count;
+                    //        }
+                    //        else if (i == currentSet.Count - 1 && currentSet.Count == prevSet.Count)
+                    //        {
+                    //            apiContext.IsCompletedSearch = true;
+                    //        }
+                    //    }
+                    //}
+                    //else
+                    //{
+                    //    result.AddRange(currentSet);
+                    //}
 
+                    // delete
+                    result.AddRange(currentSet);
 
-
-                    // result.AddRange(currentSet);
-
-                    if (result.Count == 14000)
+                    if (result.Count == 17000)
                     {
                         apiContext.IsCompletedSearch = true;
                     }
@@ -129,29 +131,11 @@ namespace BadApi.Controllers
 
                     // We have to deal with duplicates right away. The 2nd call to the Api could already have duplicates that we got in the first 100 tweets. We have to check the id of the first tweet from every round and see if it exists in our results. 
                     // If it does => then we have to remove duplicates from the new results set by only adding from the non-duplicate id and onwards. 
-                    // If it does not => then we simply add all the new results into our results
-
-                    
+                    // If it does not => then we simply add all the new results into our results                    
                 }
             }
-            
-            
+                        
             return result; 
-        }
-
-        public bool IsLaterThan()
-        {
-            var dateTime = DateTime.Parse(_defaultStartDate);
-            // 635872032000000000
-            return true;
-        }
-
-        [Route("api/v1/tweets/")]
-        public async Task<List<Tweet>> TweetApi(TweetApi apiContext)
-        {
-            var tweets = await GetTweets(apiContext);
-
-            return tweets;
         }
 
         public ActionResult About()
