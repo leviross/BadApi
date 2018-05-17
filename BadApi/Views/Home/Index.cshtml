@@ -2,33 +2,39 @@
 
 @{
     ViewBag.Title = "Get your Tweets";
-    
+    var totalUniqueTweets = 11693;
 }
 
 <div class="jumbotron">
-    <h1>BadApi Application!</h1>
+    <h2>BadApi Application!</h2>
     <p class="lead">You can get all the tweets from 2016-2017 or you can search for a certain tweet based on its content.</p>    
 </div>
 
 <div class="row">
-    <div class="col-md-2">
+    <div class="col-md-3">
+
         <h4>Search Options</h4>
-        <label for="all">Search All 2016-2017</label>
-        <button id="all">Search All</button>
-
-        <label for="tweetId">Search By Id</label>
-        <input type="text" id="tweetId" placeholder="Enter Id" />
-
-        <label for="startDate">Enter Start Date</label>
-        <input type="text" id="startDate" placeholder="Start Date" />
-
-        <label for="endDate">Enter End Date</label>
-        <input type="text" id="endDate" placeholder="End Date" />
-    </div>
-    <div class="col-md-10">        
-        @if (Model.Tweets != null)
+        <label for="alltweets">Search All 2016-2017</label>
+        <a id="alltweets" href="/tweets" class="btn btn-info">Search All</a>
+        <br />
+        <br />
+        @using (Html.BeginForm("TweetsById", "Home", FormMethod.Post))
         {
-            <h3>Here are the Tweets you requested.</h3>
+            <label for="alltweets">Search by Id</label>
+            @Html.TextBoxFor(model => model.Id)
+            <button type="submit" class="btn btn-primary">Submit</button>
+        }
+
+    </div>
+    <div class="col-md-9">        
+        @if (Model.Tweets != null && Model.Tweets?.Count() != totalUniqueTweets)
+        {
+            <h3>Here are the Tweet(s) you requested.</h3>
+            if (Model.Tweets.Count() != 1)
+            {
+                <p>If the count doesn't come out to be our calculated @totalUniqueTweets, then boo hoo on us and we just ruined the user experience by spitting out 1,000s of tweets:(</p>                
+            }
+            <p>Total Request Seconds: <strong>@Model.RequestSeconds</strong></p>
             <table>
                 <thead>
                     <tr>
@@ -49,28 +55,11 @@
                 </tbody>
             </table>
         }
-        
+        else if (Model.Tweets?.Count() == totalUniqueTweets)
+        {
+            <h4>We counted a total of <span>@Model.Tweets.Count()</span> Tweets from 2016-2017. We sure hope this is the correct calculation!</h4>
+            <p>Total Request Seconds: <strong>@Model.RequestSeconds</strong></p>
+        }
+
     </div>
 </div>
-
-@*<div class="row">
-    <div class="col-md-4">
-        <h2>Getting started</h2>
-        <p>
-            ASP.NET MVC gives you a powerful, patterns-based way to build dynamic websites that
-            enables a clean separation of concerns and gives you full control over markup
-            for enjoyable, agile development.
-        </p>
-        <p><a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkId=301865">Learn more &raquo;</a></p>
-    </div>
-    <div class="col-md-4">
-        <h2>Get more libraries</h2>
-        <p>NuGet is a free Visual Studio extension that makes it easy to add, remove, and update libraries and tools in Visual Studio projects.</p>
-        <p><a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkId=301866">Learn more &raquo;</a></p>
-    </div>
-    <div class="col-md-4">
-        <h2>Web Hosting</h2>
-        <p>You can easily find a web hosting company that offers the right mix of features and price for your applications.</p>
-        <p><a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkId=301867">Learn more &raquo;</a></p>
-    </div>
-</div>*@

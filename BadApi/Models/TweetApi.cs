@@ -9,6 +9,6 @@ namespace BadApi.Models
     {
         public string StartDate { get; set; }
         public string EndDate { get; set; }
-
+        public bool IsCompletedSearch { get; set; }
     }
 }
