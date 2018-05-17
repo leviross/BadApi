@@ -21,7 +21,7 @@ This would potentially allow users to search for a range of Tweets within custom
 As you can see in the `GetTweets` method, I increment the startDate after each request to BadApi and then I deal with duplicate Tweets right away. 
 I was thinking about allowing duplicate Tweets and filtering them at the end, but left this in for 2 reasons: 
 1. To allow you to see how I would deal with a real-world technical challenge. 
-2. Because it would take more time to have to iterate through such a large collection at the end. Its more efficiant to iterate through only some of the requests. Im impressed with my total resulting time in seconds for the whole operation. 
+2. Because it would take more time to have to iterate through such a large collection at the end. Its more efficient to iterate through only some of the requests. Im impressed with my total resulting time in seconds for the whole operation. 
 
 Thanks for your time and I would love to get an interview! Look forward to hearing back from your team:) 
 
