@@ -24,22 +24,48 @@ namespace BadApi.Controllers
             return View("~/Views/Home/Index.cshtml", viewModel);
         }
 
-        [Route("all-tweets/{id}")]
-        public async Task<ActionResult> Tweets(string id = null)
+        [Route("tweets")]
+        public async Task<ActionResult> Tweets()
         {
-            _tweets = _tweets == null ? await GetTweets() : _tweets;            
+            var reqStartTime = DateTime.Now;
+
+            _tweets = await GetTweets();
+
+            var reqEndTime = DateTime.Now;
 
             var firstCount = _tweets.Count;
             var newCount = Check(_tweets);
 
             var viewModel = new ViewModel
             {
-                Tweets = _tweets
+                Tweets = _tweets,
+                RequestSeconds = (reqEndTime - reqStartTime).Seconds
             };
 
             return View("~/Views/Home/Index.cshtml", viewModel);
         }
 
+        [HttpPost]
+        public async Task<ActionResult> TweetsById(ViewModel model)
+        {
+            var reqStartTime = DateTime.Now;
+
+            _tweets = await GetTweets();
+
+            var reqEndTime = DateTime.Now;
+
+            var tweetById = _tweets.Where(x => x.Id == model.Id);
+
+            var viewModel = new ViewModel
+            {
+                Tweets = tweetById,
+                RequestSeconds = (reqEndTime - reqStartTime).Seconds
+            };
+           
+            return View("~/Views/Home/Index.cshtml", viewModel);
+        }
+        
+        // Not needed, used to check a counts to make sure I was getting correct counts.
         public int Check(List<Tweet> tweets)
         {
             var dict = new Dictionary<string, int>();
@@ -57,6 +83,7 @@ namespace BadApi.Controllers
 
         public async Task<List<Tweet>> GetTweets(TweetApi apiContext = null)
         {
+            // I added for extensibility, users could potentially add start/end dates and other data.
             if (apiContext == null)
             {
                 apiContext = new TweetApi
@@ -75,63 +102,41 @@ namespace BadApi.Controllers
                 {
                     var startDate = Url.Encode(apiContext.StartDate);
                     var endDate = Url.Encode(apiContext.EndDate);
-                    // 2016-01-07T10%3A06%3A52.5260237%2B00%3A00
                     var apiUrl = new Uri($"{_apiBaseUrl}?startDate={startDate}&endDate={endDate}");
-
-
-                    // apiUrl = new Uri("https://badapi.iqvia.io/api/v1/Tweets?startDate=2016-01-07T10%3A06%3A52.5260237%2B00%3A00&endDate=2017-12-31T23%3A59%3A59");
 
                     var response = await client.GetAsync(apiUrl);
                     var responseStr = await response.Content.ReadAsStringAsync();
 
                     var currentSet = JsonConvert.DeserializeObject<List<Tweet>>(responseStr);
 
-                    //if (currentSet.Any(x => x.Id == "976927357935194121"))
-                    //{
-                    //    var stop = true;
-                    //    result = result.Distinct().ToList();
-                    //}
-
                     var firstTweetId = currentSet.FirstOrDefault()?.Id;
 
-                    //if (prevSet.Any(x => x.Id == firstTweetId) == true)
-                    //{
-                    //    var prevDict = prevSet.ToDictionary(x => x.Id, x => 1);
-
-                    //    for (var i = 0; i < currentSet.Count; i++)
-                    //    {
-                    //        if (!prevDict.ContainsKey(currentSet[i].Id))
-                    //        {
-                    //            currentSet = currentSet.GetRange(i, currentSet.Count - i);
-                    //            result.AddRange(currentSet);
-                    //            i = currentSet.Count;
-                    //        }
-                    //        else if (i == currentSet.Count - 1 && currentSet.Count == prevSet.Count)
-                    //        {
-                    //            apiContext.IsCompletedSearch = true;
-                    //        }
-                    //    }
-                    //}
-                    //else
-                    //{
-                    //    result.AddRange(currentSet);
-                    //}
-
-                    // delete
-                    result.AddRange(currentSet);
-
-                    if (result.Count == 17000)
+                    if (prevSet.Any(x => x.Id == firstTweetId) == true)
                     {
-                        apiContext.IsCompletedSearch = true;
+                        var prevDict = prevSet.ToDictionary(x => x.Id, x => 1);
+
+                        for (var i = 0; i < currentSet.Count; i++)
+                        {
+                            if (!prevDict.ContainsKey(currentSet[i].Id))
+                            {
+                                currentSet = currentSet.GetRange(i, currentSet.Count - i);
+                                result.AddRange(currentSet);
+                                i = currentSet.Count;
+                            }                            
+                            else if (i == currentSet.Count - 1 && currentSet.Count == prevSet.Count)
+                            {
+                                apiContext.IsCompletedSearch = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        result.AddRange(currentSet);
                     }
 
                     prevSet = currentSet;
                     var lastTweetStamp = currentSet[currentSet.Count - 1].Stamp;
                     apiContext.StartDate = lastTweetStamp;
-
-                    // We have to deal with duplicates right away. The 2nd call to the Api could already have duplicates that we got in the first 100 tweets. We have to check the id of the first tweet from every round and see if it exists in our results. 
-                    // If it does => then we have to remove duplicates from the new results set by only adding from the non-duplicate id and onwards. 
-                    // If it does not => then we simply add all the new results into our results                    
                 }
             }
                         
